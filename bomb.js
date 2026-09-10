@@ -2,141 +2,53 @@ import { player, takeDamage } from './player.js';
 
 const bombImg = new Image();
 bombImg.src = 'assets/images/bomb.png';
+let bombs=[], explosions=[];
+const MAX_BOMBS=1, BOMB_TIMER=3000, EXPLOSION_DURATION=650, EXPLOSION_RANGE=2;
 
-const explosionCenter = new Image();
-explosionCenter.src = 'assets/images/sprites_cortados/sprite_010.png';
+export function placeBomb(map, tileSize=32) {
+  if(bombs.length>=MAX_BOMBS) return;
+  const tileX=Math.floor(player.x/tileSize), tileY=Math.floor(player.y/tileSize);
+  if(map[tileY]?.[tileX]!==0 || bombs.some(b=>b.tileX===tileX&&b.tileY===tileY)) return;
+  bombs.push({tileX,tileY,x:tileX*tileSize+tileSize/2,y:tileY*tileSize+tileSize/2,timer:BOMB_TIMER,placedAt:Date.now()});
+}
 
-const explosionH = new Image();
-explosionH.src = 'assets/images/sprites_cortados/sprite_011.png';
+function createExplosion(tileX,tileY,type,enemies,tileSize) {
+  explosions.push({tileX,tileY,type,x:tileX*tileSize+tileSize/2,y:tileY*tileSize+tileSize/2,spawnedAt:Date.now()});
+  if(Math.floor(player.x/tileSize)===tileX&&Math.floor(player.y/tileSize)===tileY) takeDamage();
+  for(let i=enemies.length-1;i>=0;i--) if(Math.floor(enemies[i].x/tileSize)===tileX&&Math.floor(enemies[i].y/tileSize)===tileY) enemies.splice(i,1);
+}
 
-const explosionV = new Image();
-explosionV.src = 'assets/images/sprites_cortados/sprite_012.png';
+function detonateBomb(bomb,map,enemies,tileSize,columns,rows) {
+  createExplosion(bomb.tileX,bomb.tileY,'center',enemies,tileSize);
+  const dirs=[{dx:1,dy:0,type:'horizontal'},{dx:-1,dy:0,type:'horizontal'},{dx:0,dy:-1,type:'vertical'},{dx:0,dy:1,type:'vertical'}];
+  for(const d of dirs) for(let n=1;n<=EXPLOSION_RANGE;n++) {
+    const x=bomb.tileX+d.dx*n,y=bomb.tileY+d.dy*n;
+    if(x<0||x>=columns||y<0||y>=rows||map[y][x]===1) break;
+    createExplosion(x,y,d.type,enemies,tileSize);
+    if(map[y][x]===2){ map[y][x]=0; break; }
+  }
+}
 
-let bombs = [];
-let explosions = [];
-const MAX_BOMBS = 1;
-const BOMB_TIMER = 3000;
-const EXPLOSION_DURATION = 600;
-const EXPLOSION_RANGE = 2;
+export function updateBombs(map,enemies,tileSize=32,columns=13,rows=13) {
+  const now=Date.now();
+  bombs=bombs.filter(b=>{if(now-b.placedAt>=b.timer){detonateBomb(b,map,enemies,tileSize,columns,rows);return false;}return true;});
+  explosions=explosions.filter(e=>now-e.spawnedAt<EXPLOSION_DURATION);
+}
 
-export function placeBomb(map, tileSize) {
-  if (bombs.length >= MAX_BOMBS) return;
-
-  const tileX = Math.floor(player.x / tileSize);
-  const tileY = Math.floor(player.y / tileSize);
-
-  if (map[tileY]?.[tileX] !== 0) return;
-  if (bombs.some(bomb => bomb.tileX === tileX && bomb.tileY === tileY)) return;
-
-  bombs.push({
-    tileX,
-    tileY,
-    x: tileX * tileSize + tileSize / 2,
-    y: tileY * tileSize + tileSize / 2,
-    timer: BOMB_TIMER,
-    placedAt: Date.now()
+export function drawBombs(ctx,tileSize=32) {
+  bombs.forEach(b=>{
+    if(bombImg.complete&&bombImg.naturalWidth>0) ctx.drawImage(bombImg,b.x-16,b.y-16,tileSize,tileSize);
+    else {ctx.fillStyle='#f5f5f5';ctx.beginPath();ctx.arc(b.x,b.y,10,0,Math.PI*2);ctx.fill();}
+    ctx.fillStyle='#fff';ctx.font='bold 11px monospace';ctx.textAlign='center';
+    ctx.fillText(Math.max(0,Math.ceil((b.timer-(Date.now()-b.placedAt))/1000)),b.x,b.y+4);
   });
 }
 
-function createExplosion(tileX, tileY, type, enemies, tileSize) {
-  explosions.push({
-    tileX,
-    tileY,
-    x: tileX * tileSize + tileSize / 2,
-    y: tileY * tileSize + tileSize / 2,
-    type,
-    spawnedAt: Date.now()
+export function drawExplosions(ctx,tileSize=32) {
+  explosions.forEach(e=>{
+    const age=(Date.now()-e.spawnedAt)/EXPLOSION_DURATION, alpha=1-age;
+    ctx.save();ctx.globalAlpha=alpha;ctx.fillStyle='#ffd43b';ctx.shadowColor='#ff4eaa';ctx.shadowBlur=16;
+    ctx.fillRect(e.x-tileSize*0.38,e.y-tileSize*0.38,tileSize*0.76,tileSize*0.76);
+    ctx.fillStyle='#fff4a3';ctx.fillRect(e.x-tileSize*0.16,e.y-tileSize*0.16,tileSize*0.32,tileSize*0.32);ctx.restore();
   });
-
-  const playerTileX = Math.floor(player.x / tileSize);
-  const playerTileY = Math.floor(player.y / tileSize);
-  if (playerTileX === tileX && playerTileY === tileY) takeDamage();
-
-  for (let i = enemies.length - 1; i >= 0; i--) {
-    const enemyTileX = Math.floor(enemies[i].x / tileSize);
-    const enemyTileY = Math.floor(enemies[i].y / tileSize);
-    if (enemyTileX === tileX && enemyTileY === tileY) enemies.splice(i, 1);
-  }
-}
-
-function detonateBomb(bomb, map, enemies, tileSize, columns, rows) {
-  createExplosion(bomb.tileX, bomb.tileY, 'center', enemies, tileSize);
-
-  const directions = [
-    { dx: 1, dy: 0, type: 'horizontal' },
-    { dx: -1, dy: 0, type: 'horizontal' },
-    { dx: 0, dy: -1, type: 'vertical' },
-    { dx: 0, dy: 1, type: 'vertical' }
-  ];
-
-  for (const direction of directions) {
-    for (let distance = 1; distance <= EXPLOSION_RANGE; distance++) {
-      const x = bomb.tileX + direction.dx * distance;
-      const y = bomb.tileY + direction.dy * distance;
-
-      if (x < 0 || x >= columns || y < 0 || y >= rows) break;
-      if (map[y][x] === 1) break;
-
-      if (map[y][x] === 2) {
-        map[y][x] = 0;
-        createExplosion(x, y, direction.type, enemies, tileSize);
-        break;
-      }
-
-      createExplosion(x, y, direction.type, enemies, tileSize);
-    }
-  }
-}
-
-export function updateBombs(map, enemies, tileSize, columns, rows) {
-  const now = Date.now();
-
-  bombs = bombs.filter(bomb => {
-    if (now - bomb.placedAt >= bomb.timer) {
-      detonateBomb(bomb, map, enemies, tileSize, columns, rows);
-      return false;
-    }
-    return true;
-  });
-
-  explosions = explosions.filter(
-    explosion => now - explosion.spawnedAt < EXPLOSION_DURATION
-  );
-}
-
-export function drawBombs(ctx, tileSize) {
-  for (const bomb of bombs) {
-    if (bombImg.complete && bombImg.naturalWidth > 0) {
-      ctx.drawImage(bombImg, bomb.x - 16, bomb.y - 16, tileSize, tileSize);
-    } else {
-      ctx.fillStyle = '#f5f5f5';
-      ctx.beginPath();
-      ctx.arc(bomb.x, bomb.y, 10, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    const seconds = Math.ceil((bomb.timer - (Date.now() - bomb.placedAt)) / 1000);
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 11px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText(seconds, bomb.x, bomb.y + 4);
-  }
-}
-
-export function drawExplosions(ctx, tileSize) {
-  for (const explosion of explosions) {
-    const image = explosion.type === 'center'
-      ? explosionCenter
-      : explosion.type === 'horizontal' ? explosionH : explosionV;
-
-    if (image.complete && image.naturalWidth > 0) {
-      ctx.drawImage(image, explosion.x - 16, explosion.y - 16, tileSize, tileSize);
-    } else {
-      ctx.fillStyle = '#ffca3a';
-      ctx.shadowColor = '#ff4eaa';
-      ctx.shadowBlur = 12;
-      ctx.fillRect(explosion.x - 10, explosion.y - 10, 20, 20);
-      ctx.shadowBlur = 0;
-    }
-  }
 }
