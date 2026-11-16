@@ -2,19 +2,18 @@ import {buildSpiralRoute} from './maze.js';
 import {player,takeDamage} from './player.js';
 
 const TILE=32;
-let pits=[],route=[],fireClock=0,fireIndex=0,fireHurtClock=0,fireDelay=0;
+let pits=[],route=[],fireClock=0,fireIndex=0,fireHurtClock=0,fireDelay=0,level=1;
 const PIT_WARNING=1700,PIT_OPEN=2400,PIT_COOLDOWN=3400,FIRE_STEP=620,FIRE_WARNING=900,FIRE_DAMAGE_COOLDOWN=1300;
 const key=(x,y)=>`${x},${y}`;
 function cellCenter(p){return{x:p.x*TILE+TILE/2,y:p.y*TILE+TILE/2};}
 function freeCandidates(map){const cells=[];for(let y=1;y<map.length-1;y++)for(let x=1;x<map[y].length-1;x++)if(map[y][x]===0&&!(x===1&&y===1))cells.push({x,y});return cells;}
 function safeDistance(p){return Math.abs(Math.floor(player.x/TILE)-p.x)+Math.abs(Math.floor(player.y/TILE)-p.y)>2;}
-export function resetHazards(map,start){pits=[];route=buildSpiralRoute(map,start);fireIndex=0;fireClock=0;fireHurtClock=0;fireDelay=7000;}
+export function resetHazards(map,start,currentLevel=1){pits=[];route=buildSpiralRoute(map,start);fireIndex=0;fireClock=0;fireHurtClock=0;level=Math.max(1,Math.min(25,currentLevel));fireDelay=Math.max(2500,7000-level*180);}
 export function updateHazards(dt,map){
-  const step=Math.min(dt,50);fireDelay=Math.max(0,fireDelay-step);if(!fireDelay)fireClock+=step;fireHurtClock=Math.max(0,fireHurtClock-step);
-  if(fireClock>=FIRE_STEP){fireClock-=FIRE_STEP;fireIndex=(fireIndex+1)%route.length;}
+  const step=Math.min(dt,50);fireDelay=Math.max(0,fireDelay-step);if(!fireDelay){fireClock+=step;while(fireClock>=Math.max(390,620-level*8)){fireClock-=Math.max(390,620-level*8);fireIndex=(fireIndex+1)%route.length;}}fireHurtClock=Math.max(0,fireHurtClock-step);
   for(const pit of pits){pit.clock+=step;if(pit.phase==='warning'&&pit.clock>=PIT_WARNING){pit.phase='open';pit.clock=0;}else if(pit.phase==='open'&&pit.clock>=PIT_OPEN){pit.phase='cooldown';pit.clock=0;}else if(pit.phase==='cooldown'&&pit.clock>=PIT_COOLDOWN){pit.phase='done';}}
   pits=pits.filter(p=>p.phase!=='done');
-  if(pits.filter(p=>p.phase!=='done').length<3&&Math.random()<step/1800){const options=freeCandidates(map).filter(p=>safeDistance(p)&&!pits.some(h=>h.x===p.x&&h.y===p.y)&&(!route[fireIndex]||Math.abs(route[fireIndex].x-p.x)+Math.abs(route[fireIndex].y-p.y)>2));if(options.length){const p=options[Math.floor(Math.random()*options.length)];pits.push({...p,phase:'warning',clock:0});}}
+  if(pits.filter(p=>p.phase!=='done').length<Math.min(5,2+Math.floor((level-1)/6))&&Math.random()<step/(1900-Math.min(900,level*30))){const options=freeCandidates(map).filter(p=>safeDistance(p)&&!pits.some(h=>h.x===p.x&&h.y===p.y)&&(!route[fireIndex]||Math.abs(route[fireIndex].x-p.x)+Math.abs(route[fireIndex].y-p.y)>2));if(options.length){const p=options[Math.floor(Math.random()*options.length)];pits.push({...p,phase:'warning',clock:0});}}
   const px=Math.floor(player.x/TILE),py=Math.floor(player.y/TILE);
   const pit=pits.find(p=>p.phase==='open'&&p.x===px&&p.y===py);
   const fire=fireDelay?null:route[fireIndex];if((pit||fire&&(fire.x===px&&fire.y===py))&&fireHurtClock<=0){takeDamage();fireHurtClock=FIRE_DAMAGE_COOLDOWN;}

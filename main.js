@@ -37,16 +37,18 @@ canvas.width = columns * tileSize;
 canvas.height = rows * tileSize;
 
 // 0 = corredor, 1 = parede fixa, 2 = bloco destrutível.
+const MAX_LEVEL = 25;
 let level = loadProgress().unlockedLevel;
+let scoreSaved = false;
 let maze;
 export let map = [];
 const enemies = [];
 function populateLevel() {
-  maze = generateMaze(columns, rows);
+  maze = generateMaze(columns, rows, Math.random, Math.min(5, 2 + Math.floor((level - 1) / 5)));
   map.splice(0, map.length, ...maze.map);
   enemies.splice(0, enemies.length, ...maze.enemySpawns.map((p, i) =>
-    new Enemy(p.x * tileSize + 16, p.y * tileSize + 16, tileSize, 0.72 + Math.min(level, 8) * 0.07 + i * 0.05)));
-  resetHazards(map, maze.start);
+    new Enemy(p.x * tileSize + 16, p.y * tileSize + 16, tileSize, 0.72 + Math.min(level, 12) * 0.045 + i * 0.035)));
+  resetHazards(map, maze.start, level);
 }
 populateLevel();
 
@@ -172,7 +174,9 @@ function drawHud() {
 
 function showEndScreen(title, color, subtitle) {
   finished = true;
-  document.getElementById('restartButton').hidden = false;
+  const button = document.getElementById('restartButton');
+  button.hidden = false;
+  button.textContent = title.includes('COMPLETA') ? 'JOGAR DO INÍCIO' : (title.includes('CONCLUÍDA') ? (level >= MAX_LEVEL ? 'VER FINAL' : 'PRÓXIMA FASE') : 'TENTAR DE NOVO');
   ctx.fillStyle = 'rgba(1, 6, 10, 0.84)';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.textAlign = 'center';
@@ -209,11 +213,12 @@ function gameLoop(timestamp) {
   checkPlayerEnemyCollision();
   updatePlayer(deltaTime);
 
-  if (enemies.length === 0 && !player.isDead) {
-    saveProgress({score:getScore(),completedLevel:level});
-    showEndScreen(`FASE ${level} CONCLUÍDA`, '#48f5dc', `PONTOS ${getScore()} • REC ${loadProgress().bestScore}`);
-  } else if (player.isDead) {
-    saveProgress({score:getScore(),gameEnded:true});
+  if (enemies.length === 0 && !player.isDead && !finished) {
+    if (!scoreSaved) { saveProgress({score:getScore(),completedLevel:level}); scoreSaved=true; }
+    const finalCampaign = level >= MAX_LEVEL;
+    showEndScreen(finalCampaign ? 'CAMPANHA COMPLETA!' : `FASE ${level} CONCLUÍDA`, '#48f5dc', `PONTOS ${getScore()} • REC ${loadProgress().bestScore}`);
+  } else if (player.isDead && !finished) {
+    if (!scoreSaved) { saveProgress({score:getScore(),gameEnded:true}); scoreSaved=true; }
     showEndScreen('GAME OVER', '#ff4eaa', `PONTOS ${getScore()} • REC ${loadProgress().bestScore}`);
   }
 
@@ -223,9 +228,11 @@ function gameLoop(timestamp) {
 function restartGame() {
   if (!finished) return;
   const isGameOver = player.isDead;
+  const completedCampaign = enemies.length === 0 && !isGameOver && level >= MAX_LEVEL;
   if (isGameOver) { level = loadProgress().unlockedLevel; resetScore(); }
-  else level++;
-  resetPlayer(isGameOver); resetBombs(); bombCooldown=0; lastTime=0; finished=false;
+  else if (completedCampaign) { level = 1; resetScore(); }
+  else level = Math.min(MAX_LEVEL, level + 1);
+  resetPlayer(isGameOver || completedCampaign); resetBombs(); bombCooldown=0; lastTime=0; finished=false; scoreSaved=false;
   populateLevel();
   document.getElementById('restartButton').hidden = true;
   requestAnimationFrame(gameLoop);

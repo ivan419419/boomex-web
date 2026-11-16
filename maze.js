@@ -15,7 +15,7 @@ export function findPath(map, start, goal) {
   return path.reverse();
 }
 
-export function generateMaze(columns=13,rows=13,random=Math.random){
+export function generateMaze(columns=13,rows=13,random=Math.random,enemyCount=3){
   const map=Array.from({length:rows},()=>Array(columns).fill(1));
   const start={x:1,y:1};map[start.y][start.x]=0;
   const stack=[start],visited=new Set(['1,1']);
@@ -29,7 +29,7 @@ export function generateMaze(columns=13,rows=13,random=Math.random){
   const floors=[];for(let y=1;y<rows-1;y++)for(let x=1;x<columns-1;x++)if(map[y][x]===0&&!(x===1&&y===1))floors.push({x,y});
   const far=floors.filter(p=>Math.abs(p.x-start.x)+Math.abs(p.y-start.y)>=6);
   for(let i=far.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[far[i],far[j]]=[far[j],far[i]];}
-  const enemySpawns=far.slice(0,Math.min(3,far.length));
+  const enemySpawns=far.slice(0,Math.min(Math.max(1,enemyCount),far.length));
   // A perfect-maze backbone guarantees an always-open route from spawn to every floor cell.
   const reachable=new Set();const q=[start];for(let i=0;i<q.length;i++){let p=q[i];let k=`${p.x},${p.y}`;if(reachable.has(k))continue;reachable.add(k);for(const [dx,dy] of DIRECTIONS){let x=p.x+dx,y=p.y+dy;if(map[y]?.[x]===0&&!reachable.has(`${x},${y}`))q.push({x,y});}}
   const allFloor=floors.every(p=>reachable.has(`${p.x},${p.y}`));
