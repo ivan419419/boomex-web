@@ -8,10 +8,12 @@ test('o estado local do jogo suporta pontuação, progressão, game over e conti
   assert.equal(loadProgress(storage).unlockedLevel,1);
   saveProgress({score:225,completedLevel:1,gameEnded:true},storage);
   const reloaded=loadProgress(storage);
-  assert.equal(reloaded.bestScore,225);assert.equal(reloaded.unlockedLevel,2);assert.equal(reloaded.gamesPlayed,1);
+  assert.equal(reloaded.bestScore,225);assert.equal(reloaded.unlockedLevel,2);assert.equal(reloaded.gamesPlayed,1);assert.equal(reloaded.campaignComplete,false);
   saveProgress({score:10,gameEnded:true},storage);
   assert.equal(loadProgress(storage).bestScore,225);assert.equal(loadProgress(storage).unlockedLevel,2);assert.equal(loadProgress(storage).gamesPlayed,2);
 });
+
+test('a campanha termina na fase 25 sem liberar uma fase 26',()=>{let data=null;const local={getItem(){return data;},setItem(k,v){data=v;}};const state=saveProgress({score:999,completedLevel:25},local);assert.equal(state.unlockedLevel,25);assert.equal(state.campaignComplete,true);});
 
 test('a nova fase continua acessível pelo mesmo início gerado',()=>{
  const level1=generateMaze(13,13,()=>.37),level2=generateMaze(13,13,()=>.71);
