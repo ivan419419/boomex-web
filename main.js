@@ -1,6 +1,8 @@
 import { player, updatePlayer, initPlayer, takeDamage, resetPlayer, setButtonDirection } from './player.js';
 import { updateBombs, drawBombs, drawExplosions, placeBomb, resetBombs } from './bomb.js';
 import { Enemy } from './enemy.js';
+import { generateMaze } from './maze.js';
+import { resetHazards, updateHazards, drawHazards } from './hazards.js';
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -33,29 +35,19 @@ export const rows = 13;
 canvas.width = columns * tileSize;
 canvas.height = rows * tileSize;
 
-// 0 = chão, 1 = parede fixa, 2 = bloco destrutível
-export const map = [
-  [1,1,1,1,1,1,1,1,1,1,1,1,1],
-  [1,0,0,2,2,2,2,2,2,2,0,0,1],
-  [1,0,1,0,1,0,1,0,1,0,1,0,1],
-  [1,2,0,2,2,0,2,0,2,2,0,2,1],
-  [1,2,1,0,1,0,1,0,1,0,1,0,1],
-  [1,2,0,2,2,0,2,0,2,2,0,2,1],
-  [1,0,1,0,1,0,1,0,1,0,1,0,1],
-  [1,2,0,2,2,0,2,0,2,2,0,2,1],
-  [1,2,1,0,1,0,1,0,1,0,1,0,1],
-  [1,2,0,2,2,0,2,0,2,2,0,2,1],
-  [1,0,1,0,1,0,1,0,1,0,1,0,1],
-  [1,0,0,2,2,2,2,2,2,2,0,0,1],
-  [1,1,1,1,1,1,1,1,1,1,1,1,1]
-];
-
-const initialMap = map.map(row => [...row]);
-const enemies = [
-  new Enemy(11 * tileSize + 16, 1 * tileSize + 16, tileSize),
-  new Enemy(1 * tileSize + 16, 11 * tileSize + 16, tileSize),
-  new Enemy(11 * tileSize + 16, 11 * tileSize + 16, tileSize)
-];
+// 0 = corredor, 1 = parede fixa, 2 = bloco destrutível.
+let level = 1;
+let maze;
+export let map = [];
+const enemies = [];
+function populateLevel() {
+  maze = generateMaze(columns, rows);
+  map.splice(0, map.length, ...maze.map);
+  enemies.splice(0, enemies.length, ...maze.enemySpawns.map((p, i) =>
+    new Enemy(p.x * tileSize + 16, p.y * tileSize + 16, tileSize, 0.72 + Math.min(level, 8) * 0.07 + i * 0.05)));
+  resetHazards(map, maze.start);
+}
+populateLevel();
 
 let lastTime = 0;
 let bombCooldown = 0;
@@ -67,15 +59,9 @@ function dropBomb() {
   bombCooldown = 500;
 }
 
-canvas.addEventListener('click', () => {
-  if (finished) restartGame();
-  else dropBomb();
-});
-
 document.getElementById('bombButton')?.addEventListener('click', (event) => {
   event.preventDefault();
-  if (finished) restartGame();
-  else dropBomb();
+  if (!finished) dropBomb();
 });
 
 window.addEventListener('keydown', (event) => {
@@ -173,8 +159,11 @@ function drawHud() {
   ctx.font = 'bold 14px monospace';
   ctx.textAlign = 'left';
   ctx.fillStyle = '#7eeaff';
-  ctx.fillText('BOOMEX // SECTOR 07', 10, 22);
+  ctx.fillText(`BOOMEX // FASE ${String(level).padStart(2,'0')}`, 10, 22);
 
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#ffc85a';
+  ctx.fillText(`INIMIGOS ${enemies.length}`, canvas.width / 2, 22);
   ctx.textAlign = 'right';
   ctx.fillStyle = '#ff4eaa';
   ctx.fillText(`VIDAS ${player.lives}`, canvas.width - 10, 22);
@@ -196,28 +185,31 @@ function showEndScreen(title, color, subtitle) {
 }
 
 function gameLoop(timestamp) {
+  if (document.hidden) { lastTime = 0; if (!finished) requestAnimationFrame(gameLoop); return; }
   const deltaTime = lastTime ? Math.min(timestamp - lastTime, 50) : 16.667;
   lastTime = timestamp;
   bombCooldown = Math.max(0, bombCooldown - deltaTime);
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   drawMap();
+  drawHazards(ctx);
   drawHud();
 
-  updateBombs(map, enemies, tileSize, columns, rows);
+  updateBombs(map, enemies, tileSize, columns, rows, deltaTime);
   drawBombs(ctx, tileSize);
   drawExplosions(ctx, tileSize);
 
   for (const enemy of enemies) {
-    enemy.update(map, columns, rows, deltaTime);
+    enemy.update(map, columns, rows, deltaTime, player);
     enemy.draw(ctx);
   }
 
+  updateHazards(deltaTime, map);
   checkPlayerEnemyCollision();
   updatePlayer(deltaTime);
 
-  if (enemies.length === 0) {
-    showEndScreen('SETOR LIMPO', '#48f5dc', 'Toque para jogar novamente');
+  if (enemies.length === 0 && !player.isDead) {
+    showEndScreen(`FASE ${level} CONCLUÍDA`, '#48f5dc', 'Toque para avançar');
   } else if (player.isDead) {
     showEndScreen('GAME OVER', '#ff4eaa', 'Toque para tentar novamente');
   }
@@ -227,12 +219,11 @@ function gameLoop(timestamp) {
 
 function restartGame() {
   if (!finished) return;
-  for (let row=0; row<rows; row++) map[row].splice(0, columns, ...initialMap[row]);
-  enemies.splice(0, enemies.length,
-    new Enemy(11 * tileSize + 16, 1 * tileSize + 16, tileSize),
-    new Enemy(1 * tileSize + 16, 11 * tileSize + 16, tileSize),
-    new Enemy(11 * tileSize + 16, 11 * tileSize + 16, tileSize));
-  resetPlayer(); resetBombs(); bombCooldown=0; lastTime=0; finished=false;
+  const isGameOver = player.isDead;
+  if (isGameOver) level = 1;
+  else level++;
+  resetPlayer(isGameOver); resetBombs(); bombCooldown=0; lastTime=0; finished=false;
+  populateLevel();
   document.getElementById('restartButton').hidden = true;
   requestAnimationFrame(gameLoop);
 }
