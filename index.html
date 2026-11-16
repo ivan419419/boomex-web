@@ -1,1 +1,27 @@
-<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>BOOMEX</title><style>*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:radial-gradient(circle at center,#0b2635 0%,#03080e 72%);display:flex;align-items:center;justify-content:center;overflow:hidden;overscroll-behavior:none;touch-action:none}#gameCanvas{display:block;width:min(96vw,520px);height:auto;background:#06131d;image-rendering:pixelated;border:2px solid #155465;border-radius:18px;box-shadow:0 0 10px rgba(24,192,222,.4),0 0 35px rgba(24,192,222,.16),inset 0 0 25px rgba(24,192,222,.15)}#bombButton{position:fixed;right:18px;bottom:28px;width:82px;height:58px;border:2px solid #ff4eaa;border-radius:16px;background:rgba(30,8,32,.92);color:#fff;font:bold 12px monospace;box-shadow:0 0 16px rgba(255,78,170,.6);touch-action:manipulation}#bombButton:active{transform:scale(.94);background:#ff2695}</style></head><body><canvas id="gameCanvas"></canvas><button id="bombButton" type="button">BOMBA<br>💣</button><script type="module" src="main.js"></script></body></html>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#06131d"><title>BOOMEX</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:radial-gradient(circle at center,#0b2635,#03080e 72%);color:#d5f8ff;font-family:system-ui,sans-serif;overscroll-behavior:none}
+body{display:flex;justify-content:center}main{width:min(100%,540px);min-height:100dvh;padding:8px 10px max(10px,env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+header{text-align:center;line-height:1.1}h1{font-size:19px;letter-spacing:.18em;color:#7eeaff;margin:0}header p{font-size:12px;margin:3px 0 0;color:#a8cbd1}
+#gameCanvas{display:block;width:min(96vw,520px,calc(100dvh - 225px));height:auto;aspect-ratio:1;background:#06131d;image-rendering:pixelated;border:2px solid #155465;border-radius:14px;box-shadow:0 0 18px #18c0de55;touch-action:none}
+.controls{width:min(100%,430px);display:flex;align-items:center;justify-content:space-between;gap:12px;touch-action:none}.dpad{display:grid;grid-template-columns:repeat(3,48px);grid-template-rows:repeat(2,48px);gap:4px}.up{grid-column:2}.left{grid-column:1}.down{grid-column:2}.right{grid-column:3}
+button{border:2px solid #1e7283;border-radius:12px;background:#092631;color:#eaffff;font-weight:800;font-size:20px;touch-action:none;user-select:none;-webkit-user-select:none}.dpad button:active{background:#167084}.actions{display:flex;flex-direction:column;gap:6px;align-items:center}#bombButton{width:96px;height:70px;border-color:#ff4eaa;background:#2c0827;font-size:16px;box-shadow:0 0 14px #ff4eaa66}#bombButton:active{background:#b81678}#restartButton{font-size:12px;padding:8px 12px;touch-action:manipulation}.hint{font-size:11px;text-align:center;color:#a8cbd1;margin:0}
+@media(max-height:490px){main{gap:3px;padding:3px}header p,.hint{display:none}h1{font-size:14px}.dpad{grid-template-columns:repeat(3,38px);grid-template-rows:repeat(2,38px)}#bombButton{height:52px}#gameCanvas{width:min(90vw,calc(100dvh - 140px))}}
+</style>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body><main>
+<header><h1>BOOMEX</h1><p>Destrua blocos e elimine os inimigos!</p></header>
+<canvas id="gameCanvas" aria-label="Arena do jogo Boomex"></canvas>
+<div class="controls"><div class="dpad" aria-label="Controles de movimento">
+<button class="up" data-direction="3" aria-label="Cima">▲</button>
+<button class="left" data-direction="2" aria-label="Esquerda">◀</button>
+<button class="down" data-direction="4" aria-label="Baixo">▼</button>
+<button class="right" data-direction="1" aria-label="Direita">▶</button></div>
+<div class="actions"><button id="bombButton" type="button">💣 BOMBA</button><button id="restartButton" type="button" hidden>JOGAR DE NOVO</button></div></div>
+<p class="hint">Segure as setas para mover • Espaço ou botão para soltar bomba</p>
+</main><script type="module" src="main.js"></script></body></html>

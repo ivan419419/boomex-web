@@ -1,9 +1,30 @@
-import { player, updatePlayer, initPlayer, takeDamage } from './player.js';
-import { updateBombs, drawBombs, drawExplosions, placeBomb } from './bomb.js';
+import { player, updatePlayer, initPlayer, takeDamage, resetPlayer, setButtonDirection } from './player.js';
+import { updateBombs, drawBombs, drawExplosions, placeBomb, resetBombs } from './bomb.js';
 import { Enemy } from './enemy.js';
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+const telegram = window.Telegram?.WebApp;
+if (telegram) { telegram.ready(); telegram.expand(); }
+let activePointer = null;
+document.querySelectorAll('[data-direction]').forEach(button => {
+  button.addEventListener('pointerdown', event => {
+    if (activePointer !== null) return;
+    event.preventDefault(); activePointer = event.pointerId;
+    button.setPointerCapture(event.pointerId);
+    setButtonDirection(Number(button.dataset.direction));
+  });
+  const release = event => {
+    if (event.pointerId !== activePointer) return;
+    activePointer = null; setButtonDirection(0);
+  };
+  button.addEventListener('pointerup', release);
+  button.addEventListener('pointercancel', release);
+  button.addEventListener('lostpointercapture', release);
+});
+window.addEventListener('blur', () => { activePointer = null; setButtonDirection(0); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) {activePointer = null; setButtonDirection(0);} });
+
 
 export const tileSize = 32;
 export const columns = 13;
@@ -29,6 +50,7 @@ export const map = [
   [1,1,1,1,1,1,1,1,1,1,1,1,1]
 ];
 
+const initialMap = map.map(row => [...row]);
 const enemies = [
   new Enemy(11 * tileSize + 16, 1 * tileSize + 16, tileSize),
   new Enemy(1 * tileSize + 16, 11 * tileSize + 16, tileSize),
@@ -46,18 +68,21 @@ function dropBomb() {
 }
 
 canvas.addEventListener('click', () => {
-  dropBomb();
+  if (finished) restartGame();
+  else dropBomb();
 });
 
 document.getElementById('bombButton')?.addEventListener('click', (event) => {
   event.preventDefault();
-  dropBomb();
+  if (finished) restartGame();
+  else dropBomb();
 });
 
 window.addEventListener('keydown', (event) => {
   if (event.code === 'Space') {
     event.preventDefault();
-    dropBomb();
+    if (finished) restartGame();
+    else if (!event.repeat) dropBomb();
   }
 });
 
@@ -157,6 +182,7 @@ function drawHud() {
 
 function showEndScreen(title, color, subtitle) {
   finished = true;
+  document.getElementById('restartButton').hidden = false;
   ctx.fillStyle = 'rgba(1, 6, 10, 0.84)';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.textAlign = 'center';
@@ -170,7 +196,7 @@ function showEndScreen(title, color, subtitle) {
 }
 
 function gameLoop(timestamp) {
-  const deltaTime = timestamp - lastTime || 0;
+  const deltaTime = lastTime ? Math.min(timestamp - lastTime, 50) : 16.667;
   lastTime = timestamp;
   bombCooldown = Math.max(0, bombCooldown - deltaTime);
 
@@ -183,12 +209,12 @@ function gameLoop(timestamp) {
   drawExplosions(ctx, tileSize);
 
   for (const enemy of enemies) {
-    enemy.update(map, columns, rows);
+    enemy.update(map, columns, rows, deltaTime);
     enemy.draw(ctx);
   }
 
   checkPlayerEnemyCollision();
-  updatePlayer();
+  updatePlayer(deltaTime);
 
   if (enemies.length === 0) {
     showEndScreen('SETOR LIMPO', '#48f5dc', 'Toque para jogar novamente');
@@ -198,6 +224,20 @@ function gameLoop(timestamp) {
 
   if (!finished) requestAnimationFrame(gameLoop);
 }
+
+function restartGame() {
+  if (!finished) return;
+  for (let row=0; row<rows; row++) map[row].splice(0, columns, ...initialMap[row]);
+  enemies.splice(0, enemies.length,
+    new Enemy(11 * tileSize + 16, 1 * tileSize + 16, tileSize),
+    new Enemy(1 * tileSize + 16, 11 * tileSize + 16, tileSize),
+    new Enemy(11 * tileSize + 16, 11 * tileSize + 16, tileSize));
+  resetPlayer(); resetBombs(); bombCooldown=0; lastTime=0; finished=false;
+  document.getElementById('restartButton').hidden = true;
+  requestAnimationFrame(gameLoop);
+}
+
+document.getElementById('restartButton').addEventListener('click', restartGame);
 
 function init() {
   initPlayer(map, tileSize, columns, rows);

@@ -52,3 +52,5 @@ export function drawExplosions(ctx,tileSize=32) {
     ctx.fillStyle='#fff4a3';ctx.fillRect(e.x-tileSize*0.16,e.y-tileSize*0.16,tileSize*0.32,tileSize*0.32);ctx.restore();
   });
 }
+
+export function resetBombs() { bombs=[]; explosions=[]; }
