@@ -35,7 +35,7 @@ export function updateBombs(map,enemies,tileSize=32,columns=13,rows=13,dt=16.667
   bombs=bombs.filter(b=>{if(now-b.placedAt>=b.timer){detonateBomb(b,map,enemies,tileSize,columns,rows);return false;}return true;});
   explosions=explosions.filter(e=>now-e.spawnedAt<EXPLOSION_DURATION);
   if(explosions.some(e=>Math.floor(player.x/tileSize)===e.tileX&&Math.floor(player.y/tileSize)===e.tileY))takeDamage();
-  for(let i=enemies.length-1;i>=0;i--)if(explosions.some(e=>Math.floor(enemies[i].x/tileSize)===e.tileX&&Math.floor(enemies[i].y/tileSize)===e.tileY))enemies.splice(i,1);
+  for(let i=enemies.length-1;i>=0;i--)if(explosions.some(e=>Math.floor(enemies[i].x/tileSize)===e.tileX&&Math.floor(enemies[i].y/tileSize)===e.tileY)){enemies.splice(i,1);score+=100;}
 }
 
 export function drawBombs(ctx,tileSize=32) {
