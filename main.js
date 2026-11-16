@@ -1,9 +1,33 @@
-import { player, updatePlayer, initPlayer, takeDamage } from './player.js';
-import { updateBombs, drawBombs, drawExplosions, placeBomb } from './bomb.js';
+import { player, updatePlayer, initPlayer, takeDamage, resetPlayer, setButtonDirection } from './player.js';
+import { updateBombs, drawBombs, drawExplosions, placeBomb, resetBombs, getScore, resetScore } from './bomb.js';
 import { Enemy } from './enemy.js';
+import { generateMaze } from './maze.js';
+import { resetHazards, updateHazards, drawHazards } from './hazards.js';
+import { loadProgress, saveProgress } from './progress.js';
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+const telegram = window.Telegram?.WebApp;
+if (telegram) { telegram.ready(); telegram.expand(); }
+let activePointer = null;
+document.querySelectorAll('[data-direction]').forEach(button => {
+  button.addEventListener('pointerdown', event => {
+    if (activePointer !== null) return;
+    event.preventDefault(); activePointer = event.pointerId;
+    button.setPointerCapture(event.pointerId);
+    setButtonDirection(Number(button.dataset.direction));
+  });
+  const release = event => {
+    if (event.pointerId !== activePointer) return;
+    activePointer = null; setButtonDirection(0);
+  };
+  button.addEventListener('pointerup', release);
+  button.addEventListener('pointercancel', release);
+  button.addEventListener('lostpointercapture', release);
+});
+window.addEventListener('blur', () => { activePointer = null; setButtonDirection(0); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) {activePointer = null; setButtonDirection(0);} });
+
 
 export const tileSize = 32;
 export const columns = 13;
@@ -12,28 +36,21 @@ export const rows = 13;
 canvas.width = columns * tileSize;
 canvas.height = rows * tileSize;
 
-// 0 = chão, 1 = parede fixa, 2 = bloco destrutível
-export const map = [
-  [1,1,1,1,1,1,1,1,1,1,1,1,1],
-  [1,0,0,2,2,2,2,2,2,2,0,0,1],
-  [1,0,1,0,1,0,1,0,1,0,1,0,1],
-  [1,2,0,2,2,0,2,0,2,2,0,2,1],
-  [1,2,1,0,1,0,1,0,1,0,1,0,1],
-  [1,2,0,2,2,0,2,0,2,2,0,2,1],
-  [1,0,1,0,1,0,1,0,1,0,1,0,1],
-  [1,2,0,2,2,0,2,0,2,2,0,2,1],
-  [1,2,1,0,1,0,1,0,1,0,1,0,1],
-  [1,2,0,2,2,0,2,0,2,2,0,2,1],
-  [1,0,1,0,1,0,1,0,1,0,1,0,1],
-  [1,0,0,2,2,2,2,2,2,2,0,0,1],
-  [1,1,1,1,1,1,1,1,1,1,1,1,1]
-];
-
-const enemies = [
-  new Enemy(11 * tileSize + 16, 1 * tileSize + 16, tileSize),
-  new Enemy(1 * tileSize + 16, 11 * tileSize + 16, tileSize),
-  new Enemy(11 * tileSize + 16, 11 * tileSize + 16, tileSize)
-];
+// 0 = corredor, 1 = parede fixa, 2 = bloco destrutível.
+const MAX_LEVEL = 25;
+let level = loadProgress().unlockedLevel;
+let scoreSaved = false;
+let maze;
+export let map = [];
+const enemies = [];
+function populateLevel() {
+  maze = generateMaze(columns, rows, Math.random, Math.min(5, 2 + Math.floor((level - 1) / 5)));
+  map.splice(0, map.length, ...maze.map);
+  enemies.splice(0, enemies.length, ...maze.enemySpawns.map((p, i) =>
+    new Enemy(p.x * tileSize + 16, p.y * tileSize + 16, tileSize, 0.72 + Math.min(level, 12) * 0.045 + i * 0.035)));
+  resetHazards(map, maze.start, level);
+}
+populateLevel();
 
 let lastTime = 0;
 let bombCooldown = 0;
@@ -45,19 +62,16 @@ function dropBomb() {
   bombCooldown = 500;
 }
 
-canvas.addEventListener('click', () => {
-  dropBomb();
-});
-
 document.getElementById('bombButton')?.addEventListener('click', (event) => {
   event.preventDefault();
-  dropBomb();
+  if (!finished) dropBomb();
 });
 
 window.addEventListener('keydown', (event) => {
   if (event.code === 'Space') {
     event.preventDefault();
-    dropBomb();
+    if (finished) restartGame();
+    else if (!event.repeat) dropBomb();
   }
 });
 
@@ -148,8 +162,11 @@ function drawHud() {
   ctx.font = 'bold 14px monospace';
   ctx.textAlign = 'left';
   ctx.fillStyle = '#7eeaff';
-  ctx.fillText('BOOMEX // SECTOR 07', 10, 22);
+  ctx.fillText(`FASE ${String(level).padStart(2,'0')}`, 10, 22);
 
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#ffc85a';
+  ctx.fillText(`PTS ${String(getScore()).padStart(5,'0')}`, canvas.width / 2, 22);
   ctx.textAlign = 'right';
   ctx.fillStyle = '#ff4eaa';
   ctx.fillText(`VIDAS ${player.lives}`, canvas.width - 10, 22);
@@ -157,6 +174,9 @@ function drawHud() {
 
 function showEndScreen(title, color, subtitle) {
   finished = true;
+  const button = document.getElementById('restartButton');
+  button.hidden = false;
+  button.textContent = title.includes('COMPLETA') ? 'JOGAR DO INÍCIO' : (title.includes('CONCLUÍDA') ? (level >= MAX_LEVEL ? 'VER FINAL' : 'PRÓXIMA FASE') : 'TENTAR DE NOVO');
   ctx.fillStyle = 'rgba(1, 6, 10, 0.84)';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.textAlign = 'center';
@@ -170,34 +190,55 @@ function showEndScreen(title, color, subtitle) {
 }
 
 function gameLoop(timestamp) {
-  const deltaTime = timestamp - lastTime || 0;
+  if (document.hidden) { lastTime = 0; if (!finished) requestAnimationFrame(gameLoop); return; }
+  const deltaTime = lastTime ? Math.min(timestamp - lastTime, 50) : 16.667;
   lastTime = timestamp;
   bombCooldown = Math.max(0, bombCooldown - deltaTime);
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   drawMap();
+  drawHazards(ctx);
   drawHud();
 
-  updateBombs(map, enemies, tileSize, columns, rows);
+  updateBombs(map, enemies, tileSize, columns, rows, deltaTime);
   drawBombs(ctx, tileSize);
   drawExplosions(ctx, tileSize);
 
   for (const enemy of enemies) {
-    enemy.update(map, columns, rows);
+    enemy.update(map, columns, rows, deltaTime, player);
     enemy.draw(ctx);
   }
 
+  updateHazards(deltaTime, map);
   checkPlayerEnemyCollision();
-  updatePlayer();
+  updatePlayer(deltaTime);
 
-  if (enemies.length === 0) {
-    showEndScreen('SETOR LIMPO', '#48f5dc', 'Toque para jogar novamente');
-  } else if (player.isDead) {
-    showEndScreen('GAME OVER', '#ff4eaa', 'Toque para tentar novamente');
+  if (enemies.length === 0 && !player.isDead && !finished) {
+    if (!scoreSaved) { saveProgress({score:getScore(),completedLevel:level}); scoreSaved=true; }
+    const finalCampaign = level >= MAX_LEVEL;
+    showEndScreen(finalCampaign ? 'CAMPANHA COMPLETA!' : `FASE ${level} CONCLUÍDA`, '#48f5dc', `PONTOS ${getScore()} • REC ${loadProgress().bestScore}`);
+  } else if (player.isDead && !finished) {
+    if (!scoreSaved) { saveProgress({score:getScore(),gameEnded:true}); scoreSaved=true; }
+    showEndScreen('GAME OVER', '#ff4eaa', `PONTOS ${getScore()} • REC ${loadProgress().bestScore}`);
   }
 
   if (!finished) requestAnimationFrame(gameLoop);
 }
+
+function restartGame() {
+  if (!finished) return;
+  const isGameOver = player.isDead;
+  const completedCampaign = enemies.length === 0 && !isGameOver && level >= MAX_LEVEL;
+  if (isGameOver) { level = loadProgress().unlockedLevel; resetScore(); }
+  else if (completedCampaign) { level = 1; resetScore(); }
+  else level = Math.min(MAX_LEVEL, level + 1);
+  resetPlayer(isGameOver || completedCampaign); resetBombs(); bombCooldown=0; lastTime=0; finished=false; scoreSaved=false;
+  populateLevel();
+  document.getElementById('restartButton').hidden = true;
+  requestAnimationFrame(gameLoop);
+}
+
+document.getElementById('restartButton').addEventListener('click', restartGame);
 
 function init() {
   initPlayer(map, tileSize, columns, rows);
