@@ -2,7 +2,7 @@ import { player, takeDamage } from './player.js';
 
 const bombImg = new Image();
 bombImg.src = 'assets/images/bomb.png';
-let bombs=[], explosions=[], gameTime=0;
+let bombs=[], explosions=[], gameTime=0, score=0;
 const MAX_BOMBS=1, BOMB_TIMER=3000, EXPLOSION_DURATION=650, EXPLOSION_RANGE=2;
 
 export function placeBomb(map, tileSize=32) {
@@ -15,7 +15,7 @@ export function placeBomb(map, tileSize=32) {
 function createExplosion(tileX,tileY,type,enemies,tileSize) {
   explosions.push({tileX,tileY,type,x:tileX*tileSize+tileSize/2,y:tileY*tileSize+tileSize/2,spawnedAt:gameTime});
   if(Math.floor(player.x/tileSize)===tileX&&Math.floor(player.y/tileSize)===tileY) takeDamage();
-  for(let i=enemies.length-1;i>=0;i--) if(Math.floor(enemies[i].x/tileSize)===tileX&&Math.floor(enemies[i].y/tileSize)===tileY) enemies.splice(i,1);
+  for(let i=enemies.length-1;i>=0;i--) if(Math.floor(enemies[i].x/tileSize)===tileX&&Math.floor(enemies[i].y/tileSize)===tileY){enemies.splice(i,1);score+=100;}
 }
 
 function detonateBomb(bomb,map,enemies,tileSize,columns,rows) {
@@ -25,7 +25,7 @@ function detonateBomb(bomb,map,enemies,tileSize,columns,rows) {
     const x=bomb.tileX+d.dx*n,y=bomb.tileY+d.dy*n;
     if(x<0||x>=columns||y<0||y>=rows||map[y][x]===1) break;
     createExplosion(x,y,d.type,enemies,tileSize);
-    if(map[y][x]===2){ map[y][x]=0; break; }
+    if(map[y][x]===2){ map[y][x]=0; score+=25; break; }
   }
 }
 
@@ -56,4 +56,6 @@ export function drawExplosions(ctx,tileSize=32) {
   });
 }
 
+export function getScore(){return score;}
+export function resetScore(){score=0;}
 export function resetBombs() { bombs=[]; explosions=[]; gameTime=0; }

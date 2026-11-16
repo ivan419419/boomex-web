@@ -1,8 +1,9 @@
 import { player, updatePlayer, initPlayer, takeDamage, resetPlayer, setButtonDirection } from './player.js';
-import { updateBombs, drawBombs, drawExplosions, placeBomb, resetBombs } from './bomb.js';
+import { updateBombs, drawBombs, drawExplosions, placeBomb, resetBombs, getScore, resetScore } from './bomb.js';
 import { Enemy } from './enemy.js';
 import { generateMaze } from './maze.js';
 import { resetHazards, updateHazards, drawHazards } from './hazards.js';
+import { loadProgress, saveProgress } from './progress.js';
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -36,7 +37,7 @@ canvas.width = columns * tileSize;
 canvas.height = rows * tileSize;
 
 // 0 = corredor, 1 = parede fixa, 2 = bloco destrutível.
-let level = 1;
+let level = loadProgress().unlockedLevel;
 let maze;
 export let map = [];
 const enemies = [];
@@ -159,11 +160,11 @@ function drawHud() {
   ctx.font = 'bold 14px monospace';
   ctx.textAlign = 'left';
   ctx.fillStyle = '#7eeaff';
-  ctx.fillText(`BOOMEX // FASE ${String(level).padStart(2,'0')}`, 10, 22);
+  ctx.fillText(`FASE ${String(level).padStart(2,'0')}`, 10, 22);
 
   ctx.textAlign = 'center';
   ctx.fillStyle = '#ffc85a';
-  ctx.fillText(`INIMIGOS ${enemies.length}`, canvas.width / 2, 22);
+  ctx.fillText(`PTS ${String(getScore()).padStart(5,'0')}`, canvas.width / 2, 22);
   ctx.textAlign = 'right';
   ctx.fillStyle = '#ff4eaa';
   ctx.fillText(`VIDAS ${player.lives}`, canvas.width - 10, 22);
@@ -209,9 +210,11 @@ function gameLoop(timestamp) {
   updatePlayer(deltaTime);
 
   if (enemies.length === 0 && !player.isDead) {
-    showEndScreen(`FASE ${level} CONCLUÍDA`, '#48f5dc', 'Toque para avançar');
+    saveProgress({score:getScore(),completedLevel:level});
+    showEndScreen(`FASE ${level} CONCLUÍDA`, '#48f5dc', `PONTOS ${getScore()} • REC ${loadProgress().bestScore}`);
   } else if (player.isDead) {
-    showEndScreen('GAME OVER', '#ff4eaa', 'Toque para tentar novamente');
+    saveProgress({score:getScore(),gameEnded:true});
+    showEndScreen('GAME OVER', '#ff4eaa', `PONTOS ${getScore()} • REC ${loadProgress().bestScore}`);
   }
 
   if (!finished) requestAnimationFrame(gameLoop);
@@ -220,7 +223,7 @@ function gameLoop(timestamp) {
 function restartGame() {
   if (!finished) return;
   const isGameOver = player.isDead;
-  if (isGameOver) level = 1;
+  if (isGameOver) { level = loadProgress().unlockedLevel; resetScore(); }
   else level++;
   resetPlayer(isGameOver); resetBombs(); bombCooldown=0; lastTime=0; finished=false;
   populateLevel();

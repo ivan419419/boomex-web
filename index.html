@@ -6,7 +6,7 @@
 <style>
 *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:radial-gradient(circle at center,#0b2635,#03080e 72%);color:#d5f8ff;font-family:system-ui,sans-serif;overscroll-behavior:none}
 body{display:flex;justify-content:center}main{width:min(100%,540px);min-height:100dvh;padding:8px 10px max(10px,env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
-header{text-align:center;line-height:1.1}h1{font-size:19px;letter-spacing:.18em;color:#7eeaff;margin:0}header p{font-size:12px;margin:3px 0 0;color:#a8cbd1}
+header{text-align:center;line-height:1.1}h1{font-size:19px;letter-spacing:.18em;color:#7eeaff;margin:0}header p{font-size:12px;margin:3px 0 0;color:#a8cbd1}#saveStatus{font-size:10px;color:#66d9c6}
 #gameCanvas{display:block;width:min(96vw,520px,calc(100dvh - 225px));height:auto;aspect-ratio:1;background:#06131d;image-rendering:pixelated;border:2px solid #155465;border-radius:14px;box-shadow:0 0 18px #18c0de55;touch-action:none}
 .controls{width:min(100%,430px);display:flex;align-items:center;justify-content:space-between;gap:12px;touch-action:none}.dpad{display:grid;grid-template-columns:repeat(3,48px);grid-template-rows:repeat(2,48px);gap:4px}.up{grid-column:2}.left{grid-column:1}.down{grid-column:2}.right{grid-column:3}
 button{border:2px solid #1e7283;border-radius:12px;background:#092631;color:#eaffff;font-weight:800;font-size:20px;touch-action:none;user-select:none;-webkit-user-select:none}.dpad button:active{background:#167084}.actions{display:flex;flex-direction:column;gap:6px;align-items:center}#bombButton{width:96px;height:70px;border-color:#ff4eaa;background:#2c0827;font-size:16px;box-shadow:0 0 14px #ff4eaa66}#bombButton:active{background:#b81678}#restartButton{font-size:12px;padding:8px 12px;touch-action:manipulation}.hint{font-size:11px;text-align:center;color:#a8cbd1;margin:0}
@@ -15,7 +15,7 @@ button{border:2px solid #1e7283;border-radius:12px;background:#092631;color:#eaf
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body><main>
-<header><h1>BOOMEX</h1><p>Elimine os inimigos • Evite sumidouros e fogo!</p></header>
+<header><h1>BOOMEX</h1><p>Elimine os inimigos • Evite sumidouros e fogo!</p><p id="saveStatus" aria-live="polite">Recorde e fases salvos neste aparelho</p></header>
 <canvas id="gameCanvas" aria-label="Arena do jogo Boomex"></canvas>
 <div class="controls"><div class="dpad" aria-label="Controles de movimento">
 <button class="up" data-direction="3" aria-label="Cima">▲</button>
