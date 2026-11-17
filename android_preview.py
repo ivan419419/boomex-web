@@ -26,7 +26,7 @@ include(":app")
 (project/'app/build.gradle').write_text('''plugins { id 'com.android.application' }
 android { namespace 'br.com.ivanmoreira.boomex.preview'
  compileSdk 36
- defaultConfig { applicationId 'br.com.ivanmoreira.boomex.preview3'; minSdk 23; targetSdk 36; versionCode 3; versionName '0.3-preview'; testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner' }
+ defaultConfig { applicationId 'br.com.ivan419419.boomex.preview3'; minSdk 23; targetSdk 36; versionCode 3; versionName '0.3-preview'; testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner' }
 }
 dependencies { implementation 'androidx.webkit:webkit:1.12.1'; androidTestImplementation 'androidx.test:runner:1.6.2'; androidTestImplementation 'androidx.test.ext:junit:1.2.1'; androidTestImplementation 'androidx.test:core:1.6.1' }
 ''')
@@ -58,7 +58,7 @@ import java.util.concurrent.CountDownLatch; import java.util.concurrent.TimeUnit
  private String js(ActivityScenario<MainActivity>s,String code)throws Exception{AtomicReference<String>r=new AtomicReference<>();CountDownLatch l=new CountDownLatch(1);s.onActivity(a->{WebView w=(WebView)((ViewGroup)a.findViewById(android.R.id.content)).getChildAt(0);w.evaluateJavascript(code,x->{r.set(x);l.countDown();});});assertTrue("WebView JavaScript timed out",l.await(10,TimeUnit.SECONDS));return r.get();}
  @Test public void launchesRendersAndRunsGameLocally()throws Exception{try(ActivityScenario<MainActivity>s=ActivityScenario.launch(MainActivity.class)){
   String ready="false";for(int i=0;i<60;i++){ready=js(s,"window.__BOOMEX_READY__ === true");if("true".equals(ready))break;Thread.sleep(250);}assertEquals("game module completed initialization", "true",ready);
-  assertEquals("square 13x13 board at native canvas resolution", "[416,416]", js(s,"JSON.stringify([document.querySelector('#gameCanvas').width,document.querySelector('#gameCanvas').height])"));
+  assertEquals("square 13x13 board at native canvas resolution", "\"[416,416]\"", js(s,"JSON.stringify([document.querySelector('#gameCanvas').width,document.querySelector('#gameCanvas').height])"));
   assertEquals("25 phase game initialized", "true",js(s,"typeof requestAnimationFrame === 'function' && document.querySelector('#bombButton') !== null"));
   assertEquals("sprite available from local assets", "true",js(s,"document.querySelector('canvas') !== null"));
   assertTrue("game canvas drew a frame",js(s,"document.querySelector('#gameCanvas').toDataURL().length > 100").equals("true"));
