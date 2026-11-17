@@ -45,16 +45,15 @@ jobs:
           emulator-options: -no-window -no-audio -no-boot-anim -camera-back none
           disable-animations: true
           script: |
-            cd android
-            gradle --no-daemon connectedDebugAndroidTest assembleDebug
+            gradle -p android --no-daemon connectedDebugAndroidTest assembleDebug
             adb shell am force-stop com.ivan419419.boomex.preview
             adb shell monkey -p com.ivan419419.boomex.preview 1
             sleep 4
             adb exec-out screencap -p > "$GITHUB_WORKSPACE/boomex-v03-android16.png"
-            "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose app/build/outputs/apk/debug/app-debug.apk
-            "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" manifest application-id app/build/outputs/apk/debug/app-debug.apk
-            "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" manifest version-code app/build/outputs/apk/debug/app-debug.apk
-            "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" manifest version-name app/build/outputs/apk/debug/app-debug.apk
+            "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose android/app/build/outputs/apk/debug/app-debug.apk
+            "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" manifest application-id android/app/build/outputs/apk/debug/app-debug.apk
+            "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" manifest version-code android/app/build/outputs/apk/debug/app-debug.apk
+            "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" manifest version-name android/app/build/outputs/apk/debug/app-debug.apk
       - uses: actions/upload-artifact@v4
         if: always()
         with:
