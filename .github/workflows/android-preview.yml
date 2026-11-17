@@ -5,7 +5,7 @@ on:
     paths-ignore: ['boomex-v3-test.apk']
   workflow_dispatch:
 permissions:
-  contents: write
+  contents: read
 jobs:
   android-emulator-test:
     runs-on: ubuntu-latest
@@ -32,6 +32,7 @@ jobs:
         run: node --test tests/*.test.js
       - name: Generate Android 0.3 project
         run: python3 android_preview.py
+      - uses: ilammy/setup-kvm@v1
       - uses: reactivecircus/android-emulator-runner@v2
         name: Build, install and launch on Android 16 emulator
         with:
@@ -39,7 +40,8 @@ jobs:
           target: google_apis
           arch: x86_64
           profile: pixel_2
-          emulator-options: -no-window -no-audio -no-boot-anim -camera-back none
+          emulator-options: -no-window -no-audio -no-boot-anim -camera-back none -gpu swiftshader_indirect
+          emulator-boot-timeout: 900
           disable-animations: true
           script: |
             set +e
@@ -73,20 +75,3 @@ jobs:
           path: android-preview/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
-      - name: Copy tested APK to isolated preview branch
-        if: success() && github.ref == 'refs/heads/preview/boomex-android-20261117'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          python3 - <<'PYCODE'
-          import base64,json,os,urllib.request,urllib.error
-          base='https://api.github.com/repos/'+os.environ['GITHUB_REPOSITORY']+'/contents/boomex-v3-test.apk'
-          h={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json','Content-Type':'application/json','X-GitHub-Api-Version':'2022-11-28'}
-          apk='android-preview/app/build/outputs/apk/debug/app-debug.apk'
-          data={'message':'preview: Boomex 0.3 APK, emulator validated','branch':'preview/boomex-android-20261117','content':base64.b64encode(open(apk,'rb').read()).decode()}
-          try:
-              with urllib.request.urlopen(urllib.request.Request(base+'?ref=preview/boomex-android-20261117',headers=h)) as r:data['sha']=json.load(r)['sha']
-          except urllib.error.HTTPError as e:
-              if e.code!=404:raise
-          with urllib.request.urlopen(urllib.request.Request(base,headers=h,data=json.dumps(data).encode(),method='PUT')) as r:print('Validated v0.3 APK saved:',r.status)
-          PYCODE
