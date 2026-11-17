@@ -32,10 +32,10 @@ public class ExampleInstrumentedTest {
     }
 
     @Test public void gameInitializesAndDrawsAtOriginalCanvasSize() throws Exception {
-        assertEquals("[416,416]", js("(()=>{const c=document.querySelector('#gameCanvas');return c&&c.width===416&&c.height===416?JSON.stringify([c.width,c.height]):null})()"));
+        assertEquals("\"[416,416]\"", js("(()=>{const c=document.querySelector('#gameCanvas');return c&&c.width===416&&c.height===416?JSON.stringify([c.width,c.height]):null})()"));
         assertEquals("true", js("document.querySelector('#bombButton') !== null"));
         assertEquals("true", js("document.querySelector('#gameCanvas').toDataURL().length > 100"));
         String assets = js("(()=>{const r=performance.getEntriesByType('resource');return r.some(x=>x.name.endsWith('boomex-dog-sprite.png'))&&r.some(x=>x.name.endsWith('bomb.png'))?'true':null})()");
-        assertEquals("v0.3 dog and bomb image assets loaded", "true", assets);
+        assertEquals("v0.3 selected character and bomb image assets loaded", "true", assets);
     }
 }
