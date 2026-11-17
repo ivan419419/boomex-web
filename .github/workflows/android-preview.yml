@@ -47,8 +47,7 @@ jobs:
           script: |
             set +e
             adb logcat -c
-            cd "$GITHUB_WORKSPACE/android-preview"
-            gradle --no-daemon :app:connectedDebugAndroidTest
+            gradle -p "$GITHUB_WORKSPACE/android-preview" --no-daemon :app:connectedDebugAndroidTest
             TEST_RC=$?
             adb logcat -d -v threadtime > "$GITHUB_WORKSPACE/boomex-emulator-logcat.txt"
             grep -E 'FATAL EXCEPTION|AndroidRuntime|Boomex|chromium|CRASH' "$GITHUB_WORKSPACE/boomex-emulator-logcat.txt" | tail -250 || true
