@@ -13,6 +13,8 @@ for name in ['boomex-dog-sprite.png','bomb.png']:
     shutil.copy2(root/'assets/images'/name,images/name)
 html=(assets/'index.html').read_text(encoding='utf-8')
 html=html.replace('<script src="https://telegram.org/js/telegram-web-app.js"></script>','')
+html=html.replace('</style>', '.hint{font-size:9px;margin-top:4px}
+</style>', 1)
 html=html.replace('href="https://www.tiktok.com/@achadosanosdourados?_r=1&amp;_t=ZS-9BSGQP0YF1t" target="_blank" rel="noopener noreferrer"', 'href="https://www.tiktok.com/@achadosanosdourados?_r=1&amp;_t=ZS-9BSGQP0YF1t" target="_blank" rel="noopener noreferrer"')
 (assets/'index.html').write_text(html,encoding='utf-8')
 (project/'settings.gradle').write_text('''pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }\ndependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }\nrootProject.name = "BoomexAndroidPreview"\ninclude(":app")\n''')
