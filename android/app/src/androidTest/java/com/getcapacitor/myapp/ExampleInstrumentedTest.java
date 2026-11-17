@@ -31,10 +31,16 @@ public class ExampleInstrumentedTest {
         return "null";
     }
 
-    @Test public void gameInitializesAndDrawsAtOriginalCanvasSize() throws Exception {
+    @Test public void canvasDimensionIs416() throws Exception {
         assertEquals("true", js("(()=>{const c=document.querySelector('#gameCanvas');return !!(c&&c.width===416&&c.height===416)})()"));
+    }
+    @Test public void bombControlExists() throws Exception {
         assertEquals("true", js("document.querySelector('#bombButton') !== null"));
+    }
+    @Test public void canvasHasDrawn() throws Exception {
         assertEquals("true", js("document.querySelector('#gameCanvas').toDataURL().length > 100"));
+    }
+    @Test public void selectedV03AssetsLoaded() throws Exception {
         assertEquals("true", js("(()=>{const r=performance.getEntriesByType('resource');return r.some(x=>x.name.endsWith('boomex-dog-sprite.png'))&&r.some(x=>x.name.endsWith('bomb.png'))})()"));
     }
 }
