@@ -1,4 +1,4 @@
-# Texto candidato da ficha — BOOMEX (pt-BR)
+# Texto candidato da ficha — BOOMEX v0.3 (pt-BR)
 
 **Status:** rascunho para revisão; nada foi enviado à Google Play.
 
@@ -17,13 +17,15 @@ Um cão explorador, labirintos cheios de inimigos e decisões rápidas: em BOOME
 - Recorde e progresso salvos localmente no aparelho.
 - A campanha pode ser jogada sem conexão com a internet.
 
-A versão candidata não exige cadastro, não exibe anúncios e não envia o progresso do jogo para um servidor.
+A versão candidata não exige cadastro, não exibe anúncios e não envia o progresso do jogo para um servidor. O jogo não é direcionado a crianças menores de 13 anos.
 
 BOOMEX contém ação arcade fantasiosa, com bombas e explosões estilizadas; não representa violência real nem incentiva ações no mundo real. O link opcional para o TikTok só é aberto se você tocar nele.
 
-## Campos ainda não declarados
+**Contato de suporte:** ivanmoreira1001@gmail.com.
+
+## Campos ainda dependentes da Play Console
 
 - Categoria sugerida: Jogos > Arcade (confirmar na Play Console).
-- Público-alvo e classificação etária: preencher após decisão do proprietário e o questionário oficial.
-- Contato público de suporte: aguarda escolha do proprietário.
-- URL HTTPS pública da política de privacidade: aguarda hospedagem e contato final.
+- Questionário oficial de classificação etária, público-alvo, Data safety e anúncios.
+- Confirmar a disponibilidade do ID `com.ivan419419.boomex` antes de criar a ficha.
+- Hospedar a política de privacidade em uma URL HTTPS permanente e testar o fluxo no aparelho.
