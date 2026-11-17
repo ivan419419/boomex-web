@@ -1,15 +1,15 @@
-name: Boomex Android preview debug
+name: Boomex Android 0.3 emulator validation
 on:
   push:
     branches: ['preview/boomex-android-20261117']
-    paths-ignore: ['boomex-android-preview-debug.apk']
+    paths-ignore: ['boomex-v3-test.apk']
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 jobs:
-  android-debug:
+  android-emulator-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -23,28 +23,70 @@ jobs:
         with:
           accept-android-sdk-licenses: true
           packages: ''
-      - name: Install Android API 36
-        run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+      - name: Install API 36 SDK and emulator
+        run: sdkmanager 'platform-tools' 'platforms;android-36' 'build-tools;36.0.0' 'emulator' 'system-images;android-36;google_apis;x86_64'
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'
-      - name: Run project tests
+      - name: Run all existing Boomex logic tests
         run: node --test tests/*.test.js
-      - name: Generate local-only Android project
+      - name: Generate Android 0.3 project
         run: python3 android_preview.py
-      - name: Build debug APK
-        working-directory: android-preview
-        run: gradle --no-daemon :app:assembleDebug
-      - uses: actions/upload-artifact@v4
+      - uses: reactivecircus/android-emulator-runner@v2
+        name: Build, install and launch on Android 16 emulator
         with:
-          name: boomex-android-preview-debug
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          profile: pixel_2
+          emulator-options: -no-window -no-audio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: |
+            set +e
+            adb logcat -c
+            cd android-preview
+            gradle --no-daemon :app:connectedDebugAndroidTest
+            TEST_RC=$?
+            adb logcat -d -v threadtime > "$GITHUB_WORKSPACE/boomex-emulator-logcat.txt"
+            grep -E 'FATAL EXCEPTION|AndroidRuntime|Boomex|chromium|CRASH' "$GITHUB_WORKSPACE/boomex-emulator-logcat.txt" | tail -250 || true
+            exit $TEST_RC
+      - name: Verify package, version, target API and signature
+        working-directory: android-preview
+        run: |
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          $ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer manifest application-id "$APK"
+          $ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer manifest version-code "$APK"
+          $ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer manifest version-name "$APK"
+          $ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer manifest target-sdk "$APK"
+          $ANDROID_HOME/build-tools/36.0.0/apksigner verify --verbose "$APK"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: boomex-v0.3-emulator-logcat
+          path: boomex-emulator-logcat.txt
+          if-no-files-found: ignore
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: boomex-android-v0.3-verified-debug
           path: android-preview/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
-      - name: Verify APK package, version and API target
-        working-directory: android-preview
+      - name: Copy tested APK to isolated preview branch
+        if: success() && github.ref == 'refs/heads/preview/boomex-android-20261117'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          $ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer manifest application-id app/build/outputs/apk/debug/app-debug.apk
-          $ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer manifest version-code app/build/outputs/apk/debug/app-debug.apk
-          $ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer manifest target-sdk app/build/outputs/apk/debug/app-debug.apk
-          $ANDROID_HOME/build-tools/36.0.0/apksigner verify --verbose app/build/outputs/apk/debug/app-debug.apk
+          python3 - <<'PYCODE'
+          import base64,json,os,urllib.request,urllib.error
+          base='https://api.github.com/repos/'+os.environ['GITHUB_REPOSITORY']+'/contents/boomex-v3-test.apk'
+          h={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json','Content-Type':'application/json','X-GitHub-Api-Version':'2022-11-28'}
+          apk='android-preview/app/build/outputs/apk/debug/app-debug.apk'
+          data={'message':'preview: Boomex 0.3 APK, emulator validated','branch':'preview/boomex-android-20261117','content':base64.b64encode(open(apk,'rb').read()).decode()}
+          try:
+              with urllib.request.urlopen(urllib.request.Request(base+'?ref=preview/boomex-android-20261117',headers=h)) as r:data['sha']=json.load(r)['sha']
+          except urllib.error.HTTPError as e:
+              if e.code!=404:raise
+          with urllib.request.urlopen(urllib.request.Request(base,headers=h,data=json.dumps(data).encode(),method='PUT')) as r:print('Validated v0.3 APK saved:',r.status)
+          PYCODE
