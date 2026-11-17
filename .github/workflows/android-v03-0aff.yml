@@ -1,0 +1,66 @@
+name: BOOMEX v0.3 exact art - Android 16
+on:
+  push:
+    branches: [preview/boomex-v03-0aff-android]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v4
+        with:
+          accept-android-sdk-licenses: true
+          packages: 'platform-tools platforms;android-36 build-tools;36.0.0 emulator system-images;android-36;google_apis;x86_64'
+      - name: Verify source and logic tests
+        run: |
+          git merge-base --is-ancestor 0aff936890e7f785c134fdc008bf7286505f4edd HEAD
+          npm ci
+          npm test
+      - name: Build Android web assets
+        run: npm run sync:android
+      - name: Android 16 emulator instrumentation, APK build and screenshot
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          profile: pixel_2
+          emulator-options: -no-window -no-audio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: |
+            cd android
+            ./gradlew --no-daemon connectedDebugAndroidTest assembleDebug
+            adb shell am force-stop com.ivan419419.boomex.preview
+            adb shell monkey -p com.ivan419419.boomex.preview 1
+            sleep 4
+            adb exec-out screencap -p > "$GITHUB_WORKSPACE/boomex-v03-android16.png"
+            "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose app/build/outputs/apk/debug/app-debug.apk
+            "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" manifest application-id app/build/outputs/apk/debug/app-debug.apk
+            "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" manifest version-code app/build/outputs/apk/debug/app-debug.apk
+            "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" manifest version-name app/build/outputs/apk/debug/app-debug.apk
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: boomex-v03-android16-screenshot
+          path: boomex-v03-android16.png
+          if-no-files-found: ignore
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: boomex-v03-0aff-android16-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
