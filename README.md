@@ -1,20 +1,35 @@
-# BOOMEX Web — validação Android
+# BOOMEX — preparação Android para a Google Play
 
-Este branch prepara o jogo web atual para uma **build Android de depuração**, mantendo `main` e a versão web de produção intactas. O wrapper usa Capacitor e empacota os arquivos locais do jogo em uma WebView.
+Esta branch prepara o jogo web atual para testes Android e para uma futura publicação. Ela não modifica `main` nem a versão web em produção. O aplicativo é uma WebView Capacitor que empacota os arquivos locais do jogo; o SDK remoto do Telegram é removido da cópia Android.
 
-## Estado e limites
+## Artefatos desta preparação
 
-- `applicationId` provisório do APK de teste: `com.ivan419419.boomex.preview`. Não usar como identidade definitiva de publicação sem decisão explícita.
-- O APK `debug` é assinado com a chave de depuração local e serve para instalação/teste; não é um pacote de lançamento para a Play Store.
-- A cópia Android omite o carregamento do SDK remoto do Telegram, que é opcional para o jogo standalone. `index.html` e o restante do código-fonte original não são alterados pelo script de cópia.
-- Licenças e procedência dos assets, identidade final do app, ícone, política de privacidade e comportamento em aparelhos ainda precisam ser validados antes de qualquer lançamento.
-- Nenhuma conta ou configuração da Play Store faz parte deste projeto de validação.
+- APK de depuração para instalar e testar: `artifacts/boomex-preview-debug.apk` — pacote de teste `com.ivan419419.boomex.preview`.
+- Jogo standalone sem conexão: `artifacts/boomex-offline.html` — um único arquivo HTML com JavaScript, sprites e a política local embutidos.
+- AAB candidato assinado: `artifacts/boomex-candidate-release.aab` — ID de release `com.ivan419419.boomex`, `versionCode` 1, `versionName` 1.0.0, `minSdk` 24 e `targetSdk` 36. Foi gerado e verificado localmente, mas não foi enviado à Google Play.
+- Ícone 512×512, duas alternativas visuais e gráfico 1024×500 estão em `assets/store/`. Os conceitos visuais ainda aguardam a escolha do proprietário antes de serem tratados como arte final.
+- Duas capturas de gameplay 1080×1920 para revisão da ficha estão em `assets/store/screenshots/`.
 
-## Requisitos
+O ícone A está aplicado provisoriamente ao APK/AAB porque combina melhor com o cão pixelado do jogo. O ícone B continua disponível como alternativa. Nenhuma dessas escolhas foi enviada para a loja.
 
-- Node.js 22 ou superior.
-- Java 21.
-- Android SDK com uma plataforma e Build Tools compatíveis; o wrapper Capacitor 8 usa Android API 24 como mínimo suportado.
+## Estado técnico
+
+- `npm test`: 11 testes passaram nesta preparação.
+- O APK debug é assinado com a chave de depuração local; o AAB usa uma upload key RSA 2048 gerada para este candidato e a assinatura do arquivo foi verificada.
+- A cópia Android não inclui o sprite `bomberman_walk.png`, que não é usado pelo jogo.
+- O manifesto Android desativa backup automático (`allowBackup=false`). A permissão de internet permanece para o WebView e o link externo opcional do TikTok; o jogo inicia e funciona offline.
+- O progresso é local no aparelho; não foram encontrados anúncios, analytics, cadastro de conta ou envio remoto do progresso na versão auditada.
+
+## O que ainda precisa ser decidido ou concluído antes da loja
+
+1. Confirmar que o pacote `com.ivan419419.boomex` está disponível na Play Console antes de criar a ficha; o ID é difícil de trocar depois que o app é criado.
+2. Confirmar direitos comerciais/licenças dos assets usados no jogo, em especial `assets/images/boomex-dog-sprite.png` e `assets/images/bomb.png`. O histórico do repositório não documenta suas origens.
+3. Escolher o ícone A ou B e aprovar a arte promocional/capturas.
+4. Substituir `[INSERIR E-MAIL PÚBLICO DE SUPORTE]` em `privacy-policy.html`, escolher o contato que poderá ficar público e hospedar a política em uma URL HTTPS pública. O link interno já abre essa página no app.
+5. Definir o público-alvo/idades e preencher as declarações de classificação etária, anúncios, Data safety e demais questionários da Play Console com base na versão final.
+6. Completar teste em aparelho Android físico e, se a conta pessoal nova estiver sujeita à regra vigente, o teste fechado exigido pelo Google Play.
+
+Nenhuma conta de desenvolvedor foi criada, nenhuma taxa foi paga e nenhum app foi submetido ou publicado.
 
 ## Comandos
 
@@ -22,11 +37,20 @@ Este branch prepara o jogo web atual para uma **build Android de depuração**, 
 npm install
 npm test
 npm run build:web
-npx cap add android       # somente na primeira criação do projeto nativo
-npm run sync:android
+npm run build:offline
 npm run build:android:debug
 ```
 
-O APK de depuração é criado em `android/app/build/outputs/apk/debug/app-debug.apk`. `npm run build:web` copia apenas os arquivos necessários do jogo e os assets para `www/`; essa pasta e os assets Android sincronizados são saídas geradas e ficam fora do Git.
+Para gerar um novo AAB assinado, forneça estas variáveis no ambiente apenas durante a compilação:
 
-Para abrir o projeto depois de sincronizar, importe a pasta `android/` no Android Studio. A execução em dispositivo/emulador não foi automatizada neste branch.
+```bash
+BOOMEX_UPLOAD_KEYSTORE=/caminho/privado/boomex-upload-key.jks
+BOOMEX_UPLOAD_STORE_PASSWORD=...
+BOOMEX_UPLOAD_KEY_ALIAS=boomex-upload
+BOOMEX_UPLOAD_KEY_PASSWORD=...
+npm run build:android:release
+```
+
+`BOOMEX_AAPT2_OVERRIDE` é opcional e serve apenas em hosts Linux ARM64 que precisem executar o AAPT2 oficial via emulação. No computador desta preparação, o AAB e o APK foram montados com API 36.
+
+A upload key e as credenciais de recuperação estão em `artifacts/` no ambiente local e essa pasta é ignorada pelo Git. Faça uma cópia segura da chave antes de limpar o ambiente e nunca a envie ao repositório.

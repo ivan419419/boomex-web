@@ -1,4 +1,4 @@
-package com.ivan419419.boomex.preview;
+package com.ivan419419.boomex;
 
 import com.getcapacitor.BridgeActivity;
 

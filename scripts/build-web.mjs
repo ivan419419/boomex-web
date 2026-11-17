@@ -6,6 +6,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const webDir = resolve(root, 'www');
 const runtimeFiles = [
   'index.html',
+  'privacy-policy.html',
   'main.js',
   'player.js',
   'bomb.js',
@@ -14,6 +15,7 @@ const runtimeFiles = [
   'maze.js',
   'progress.js',
 ];
+const runtimeImages = ['boomex-dog-sprite.png', 'bomb.png'];
 
 await rm(webDir, { recursive: true, force: true });
 await mkdir(webDir, { recursive: true });
@@ -21,7 +23,10 @@ await mkdir(webDir, { recursive: true });
 for (const file of runtimeFiles) {
   await cp(resolve(root, file), resolve(webDir, file));
 }
-await cp(resolve(root, 'assets/images'), resolve(webDir, 'assets/images'), { recursive: true });
+await mkdir(resolve(webDir, 'assets/images'), { recursive: true });
+for (const image of runtimeImages) {
+  await cp(resolve(root, 'assets/images', image), resolve(webDir, 'assets/images', image));
+}
 
 const indexPath = resolve(webDir, 'index.html');
 const html = await readFile(indexPath, 'utf8');
