@@ -32,7 +32,8 @@ jobs:
         run: node --test tests/*.test.js
       - name: Generate Android 0.3 project
         run: python3 android_preview.py
-      - uses: ilammy/setup-kvm@v1
+      - name: Enable KVM access
+        run: sudo chmod 666 /dev/kvm
       - uses: reactivecircus/android-emulator-runner@v2
         name: Build, install and launch on Android 16 emulator
         with:
