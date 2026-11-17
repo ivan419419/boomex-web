@@ -5,7 +5,7 @@ on:
     paths-ignore: ['boomex-android-preview-debug.apk']
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 jobs:
   android-debug:
     runs-on: ubuntu-latest
@@ -41,3 +41,27 @@ jobs:
           path: android-preview/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
+      - name: Verify APK package, version and API target
+        working-directory: android-preview
+        run: |
+          $ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer manifest application-id app/build/outputs/apk/debug/app-debug.apk
+          $ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer manifest version-code app/build/outputs/apk/debug/app-debug.apk
+          $ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer manifest target-sdk app/build/outputs/apk/debug/app-debug.apk
+          $ANDROID_HOME/build-tools/36.0.0/apksigner verify --verbose app/build/outputs/apk/debug/app-debug.apk
+      - name: Make rebuilt APK available on preview branch
+        if: github.ref == 'refs/heads/preview/boomex-android-20261117'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PYCODE'
+          import base64,json,os,urllib.request,urllib.error
+          base='https://api.github.com/repos/'+os.environ['GITHUB_REPOSITORY']+'/contents/boomex-v2-test.apk'
+          h={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json','Content-Type':'application/json','X-GitHub-Api-Version':'2022-11-28'}
+          apk='android-preview/app/build/outputs/apk/debug/app-debug.apk'
+          data={'message':'preview: novo APK debug limpo (v2)','branch':'preview/boomex-android-20261117','content':base64.b64encode(open(apk,'rb').read()).decode()}
+          try:
+              with urllib.request.urlopen(urllib.request.Request(base+'?ref=preview/boomex-android-20261117',headers=h)) as r: data['sha']=json.load(r)['sha']
+          except urllib.error.HTTPError as e:
+              if e.code!=404: raise
+          with urllib.request.urlopen(urllib.request.Request(base,headers=h,data=json.dumps(data).encode(),method='PUT')) as r: print('APK v2 salvo:',r.status)
+          PYCODE
