@@ -1,0 +1,13 @@
+node_modules/
+www/
+artifacts/
+telegram-preview/
+
+android/.gradle/
+android/local.properties
+android/**/build/
+android/**/captures/
+android/**/.externalNativeBuild/
+android/app/src/main/assets/public/
+
+.DS_Store

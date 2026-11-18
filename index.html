@@ -2,15 +2,18 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#06131d"><title>BOOMEX</title>
+<meta name="theme-color" content="#06131d"><title>BOOMEX v0.3</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:radial-gradient(circle at center,#0b2635,#03080e 72%);color:#d5f8ff;font-family:system-ui,sans-serif;overscroll-behavior:none}
-body{display:flex;justify-content:center}main{width:min(100%,540px);min-height:100dvh;padding:8px 10px max(10px,env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+body{display:flex;justify-content:center}main{width:min(100%,540px);min-height:100dvh;padding:8px 10px max(10px,env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}main::after{content:"";flex:0 0 50px}
 header{text-align:center;line-height:1.1}h1{font-size:19px;letter-spacing:.18em;color:#7eeaff;margin:0}header p{font-size:12px;margin:3px 0 0;color:#a8cbd1}#saveStatus{font-size:10px;color:#66d9c6}
 #gameCanvas{display:block;width:min(96vw,520px,calc(100dvh - 261px));height:auto;aspect-ratio:1;background:#06131d;image-rendering:pixelated;border:2px solid #155465;border-radius:14px;box-shadow:0 0 18px #18c0de55;touch-action:none}
-.controls{width:min(100%,430px);display:flex;align-items:center;justify-content:space-between;gap:12px;touch-action:none;margin-bottom:16px}.dpad{display:grid;grid-template-columns:repeat(3,48px);grid-template-rows:repeat(2,48px);gap:4px}.up{grid-column:2}.left{grid-column:1}.down{grid-column:2}.right{grid-column:3}
-button{border:2px solid #1e7283;border-radius:12px;background:#092631;color:#eaffff;font-weight:800;font-size:20px;touch-action:none;user-select:none;-webkit-user-select:none}.dpad button:active{background:#167084}.actions{display:flex;flex-direction:column;gap:6px;align-items:center}#bombButton{width:96px;height:70px;border-color:#ff4eaa;background:#2c0827;font-size:16px;box-shadow:0 0 14px #ff4eaa66}#bombButton:active{background:#b81678}#restartButton{font-size:12px;padding:8px 12px;touch-action:manipulation}.hint{font-size:11px;text-align:center;color:#a8cbd1;margin:0}.follow{font-size:11px;text-align:center;color:#c8dde3;margin:0;padding:4px 8px}.follow a{color:#ff75b7;font-weight:700;text-decoration:none;border-bottom:1px solid #ff75b7;padding-bottom:1px}.follow a:focus-visible{outline:2px solid #7eeaff;outline-offset:3px;border-radius:2px}
-@media(max-height:490px){main{gap:3px;padding:3px}header p,.hint{display:none}.follow{font-size:10px;padding:1px}h1{font-size:14px}.dpad{grid-template-columns:repeat(3,38px);grid-template-rows:repeat(2,38px)}#bombButton{height:52px}#gameCanvas{width:min(90vw,calc(100dvh - 156px))}}
+.controls{width:min(100%,430px);display:flex;align-items:center;justify-content:space-between;gap:12px;touch-action:none;margin-bottom:24px}
+.dpad{display:grid;grid-template-columns:repeat(3,48px);grid-template-rows:repeat(2,48px);grid-template-areas:". up ." "left down right";gap:8px}.up{grid-area:up}.left{grid-area:left}.down{grid-area:down}.right{grid-area:right}
+button{border:2px solid #1e7283;border-radius:12px;background:#092631;color:#eaffff;font-weight:800;font-size:20px;touch-action:none;user-select:none;-webkit-user-select:none}.dpad button:active{background:#167084}
+.actions{display:flex;flex-direction:column;gap:6px;align-items:center}#bombButton{width:96px;height:70px;border-color:#ff4eaa;background:#2c0827;font-size:16px;box-shadow:0 0 14px #ff4eaa66}#bombButton:active{background:#b81678}#restartButton{font-size:12px;padding:8px 12px;touch-action:manipulation}
+.footer{position:fixed;left:10px;right:10px;bottom:max(8px,env(safe-area-inset-bottom));z-index:2;display:flex;flex-direction:column;gap:2px;font-size:8px;line-height:1.05;color:#a8cbd1;margin:0}.footer p{margin:0}.footer .hint{text-align:left}.creditRow{display:flex;align-items:center;justify-content:space-between;gap:8px}.copyright,.follow{color:#c8dde3}.follow{text-align:left}.footer a{color:#ff75b7;font-weight:700;text-decoration:none;border-bottom:1px solid #ff75b7;padding-bottom:1px}.footer a:focus-visible{outline:2px solid #7eeaff;outline-offset:3px;border-radius:2px}
+@media(max-height:490px){main{gap:3px;padding:3px}main::after{flex-basis:36px}header p{display:none}.controls{margin-bottom:16px}.footer{font-size:7px;gap:1px}h1{font-size:14px}.dpad{grid-template-columns:repeat(3,38px);grid-template-rows:repeat(2,38px)}#bombButton{height:52px}#gameCanvas{width:min(90vw,calc(100dvh - 156px))}}
 </style>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
@@ -23,6 +26,9 @@ button{border:2px solid #1e7283;border-radius:12px;background:#092631;color:#eaf
 <button class="down" data-direction="4" aria-label="Baixo">▼</button>
 <button class="right" data-direction="1" aria-label="Direita">▶</button></div>
 <div class="actions"><button id="bombButton" type="button">💣 BOMBA</button><button id="restartButton" type="button" hidden>JOGAR DE NOVO</button></div></div>
+<footer class="footer" aria-label="Informações do jogo">
 <p class="hint">Segure as setas • Use BOMBA • Atenção aos avisos no chão</p>
-<p class="follow">Curte o jogo? <a id="tiktokLink" href="https://www.tiktok.com/@achadosanosdourados?_r=1&amp;_t=ZS-9BSGQP0YF1t" target="_blank" rel="noopener noreferrer" aria-label="Seguir Ivan no TikTok @achadosanosdourados">Siga @achadosanosdourados no TikTok ↗</a></p>
+<div class="creditRow"><p class="copyright">© 2026 Ivan Moreira de Araujo</p><a id="privacyLink" href="privacy-policy.html" aria-label="Ler a Política de Privacidade do BOOMEX">Privacidade</a></div>
+<p class="follow">Curte o jogo? Siga <a id="tiktokLink" href="https://www.tiktok.com/@achadosanosdourados?_r=1&amp;_t=ZS-9BSGQP0YF1t" target="_blank" rel="noopener noreferrer" aria-label="Seguir Ivan no TikTok @achadosanosdourados">@achadosanosdourados no TikTok</a></p>
+</footer>
 </main><script type="module" src="main.js"></script></body></html>
