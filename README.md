@@ -1,41 +1,56 @@
-# BOOMEX v0.3 — validação Telegram e Android
+# BOOMEX v0.3 — preparação Android e Play Store
 
-Esta branch (`cue/android-validation-20261116`) é isolada: `main` e o jogo em produção permanecem intactos. A versão v0.3 mantém o tabuleiro, o canvas, os controles e as mecânicas existentes; só troca o sprite do cão e a imagem da bomba por arte nova, e identifica a versão no título/metadata.
+## Estado desta preparação
 
-## Escolhas confirmadas
+A preparação está isolada na branch `cue/boomex-playstore-prep-20261118`, baseada no commit público `aff27278d4866855c3ea03b54ecf42594f56fb23`. O jogo mantém o tabuleiro original, as setas em cruz, o botão BOMBA e o crédito aprovado. Nenhuma alteração de mecânica ou tamanho de tabuleiro foi feita nesta etapa.
 
-- Nome: BOOMEX; `versionName` Android: `0.3`; `versionCode`: `3`; versão do pacote npm: `0.3.0`.
-- ID candidato: `com.ivan419419.boomex`; APK de teste usa o sufixo `.preview`.
-- Ícone A aprovado, reconstruído a partir da nova mascote; o gráfico promocional 1024×500 aprovado foi mantido.
-- A versão não é direcionada a menores de 13 anos.
-- Contato público de suporte/privacidade: `ivanmoreira1001@gmail.com`.
-- Os sprites de procedência incerta foram substituídos por assets originais gerados para esta versão; o código de gameplay e os controles não foram alterados.
+Antes de começar, foi confirmado no GitHub o backup do estado público: a branch `backup/boomex-public-before-playstore-20261118` e a tag `backup-boomex-public-before-playstore-20261118` apontam ambas para `aff27278d4866855c3ea03b54ecf42594f56fb23`. A branch `main` também estava nesse SHA na verificação.
 
-## Ordem desta rodada
+A página inicial `https://boomex-web.vercel.app/` abre sem login. O rodapé já inclui o link “Privacidade”. O texto final da política está em `privacy-policy.html` e usa a URL permanente `https://boomex-web.vercel.app/privacy-policy.html`; a atualização do conteúdo público dessa página só deve ocorrer depois da validação e publicação desta branch.
 
-1. `npm run build:telegram-preview` cria `telegram-preview/` com somente HTML, scripts de runtime, política e as imagens necessárias. O SDK Telegram continua ativo, para que o link HTTPS possa ser aberto no webview do Telegram.
-2. O preview é testado no Telegram primeiro. Nenhum APK v0.3 será entregue como aprovado antes desse teste.
-3. Depois do retorno do teste no Telegram, gerar o APK de depuração para o aparelho Android e, se solicitado/necessário, o AAB de validação. Não há publicação automática.
+## O que está preparado
 
-O diretório temporário `telegram-preview/` é ignorado pelo Git e o servidor HTTP deve apontar somente para ele. Ele não contém o keystore, credenciais, APK/AAB nem fontes de build.
+- **Android:** Capacitor 8.6.2; ID candidato `com.ivan419419.boomex`; versão `0.3` / `versionCode 3`; `minSdk 24`; `targetSdk 36`.
+- **Pacote Android:** o jogo, JavaScript e artes ficam no pacote local. O build Android não inclui o SDK remoto do Telegram; não é necessário estar dentro do Telegram para jogar no app.
+- **Jogo offline:** `artifacts/boomex-offline.html` é um arquivo único com as artes incorporadas. O progresso é mantido localmente no aparelho/navegador.
+- **Arte da loja:** ícone A em `assets/store/boomex-icon-512-playstore.png` (512×512); gráfico panorâmico aprovado em `assets/store/boomex-feature-graphic-1024x500.png` (1024×500); duas capturas atuais em `assets/store/screenshots/`.
+- **Ficha:** texto em `assets/store/listing-copy-pt-BR.md`; rascunho de Data safety em `assets/store/data-safety-draft-pt-BR.md`; procedência das artes em `assets/store/asset-provenance-v0.3.md`.
+- **Contato público de suporte e privacidade:** `ivanmoreira1001@gmail.com`.
+- **Público conforme escolha do proprietário:** não direcionado a menores de 13 anos. As faixas etárias exatas ainda devem ser escolhidas no formulário do Play Console.
 
-## Estado da loja
+As artes do cachorro, da bomba, do ícone e do gráfico foram criadas especificamente para o BOOMEX. O registro de procedência reduz o uso de assets sem origem conhecida, mas não é uma garantia jurídica de exclusividade ou de ausência de semelhança não intencional.
 
-A política local agora mostra o contato e o público escolhidos, mas ainda precisa de uma URL HTTPS permanente antes do envio à loja. O ID não foi conferido na Play Console. As declarações de conteúdo, privacidade/Data safety e classificação etária precisam ser preenchidas na conta do desenvolvedor com base no app final. Nenhuma conta foi criada, taxa paga, build enviada ou publicação feita.
+## Validação e AAB
 
-## Verificações
+- `npm test`: **11 testes passaram; 0 falharam**.
+- O AAB foi produzido e validado estruturalmente pelo bundletool. Manifesto confirmado dentro do pacote: `com.ivan419419.boomex`, versão `0.3`, `versionCode 3`, `targetSdk 36`, `minSdk 24`.
+- Artefato: `artifacts/boomex-v0.3-unsigned.aab` — 3.793.300 bytes; SHA-256 `3533b816347c920ab23f95ccf35c069a2ea4c17a8a43166c3b5e15834a8a15d9`.
+- **O AAB está sem assinatura.** Nenhuma chave de assinatura foi carregada ou usada nesta build. O arquivo é para inspeção técnica e não pode ser enviado à Play Console até o proprietário decidir e aplicar uma chave de upload válida.
+- O HTML offline tem imagens embutidas e não carrega o SDK remoto do Telegram.
 
-`npm test` cobre 11 testes automatizados de mapa, movimento/colisão, progresso local e campanha. O pacote Android usa `minSdk` 24 e `targetSdk` 36. Antes do APK final desta rodada, também será necessário conferir o preview no aparelho físico; o usuário quer validar primeiro dentro do Telegram.
-
-## Comandos
+Comandos locais usados para validar:
 
 ```bash
-npm install
+npm ci
 npm test
-npm run build:telegram-preview
 npm run build:offline
-npm run build:android:debug
-npm run build:android:release
+npm run build:android:unsigned
 ```
 
-A chave de upload e suas credenciais permanecem em `artifacts/` no ambiente local, ignoradas pelo Git. Faça cópia segura se for necessário manter uma futura assinatura de release; nunca as envie ao repositório.
+## O que ainda depende do proprietário
+
+1. Criar e configurar a conta Play Console com `ivanmoreira1001@gmail.com`, concluir as verificações exigidas e pagar a taxa de cadastro. Nada foi cadastrado, pago ou enviado nesta preparação.
+2. Conferir na Play Console se `com.ivan419419.boomex` está disponível; a disponibilidade não pode ser garantida sem criar a ficha.
+3. Escolher e proteger uma chave de upload para assinar a versão final. Nenhuma chave foi criada ou usada nesta preparação; o AAB entregue está sem assinatura.
+4. Revisar e preencher Data safety, público/faixas etárias, classificação IARC e declaração de anúncios. Os arquivos desta branch são rascunhos e não substituem as respostas do proprietário na Console.
+5. Instalar e testar em aparelho Android o pacote final assinado. A aprovação de alvo API foi configurada em `36`, o mínimo exigido para novos apps a partir de 31 de agosto de 2026.
+6. Se a conta pessoal for criada agora, concluir o teste fechado com pelo menos 12 testadores inscritos por 14 dias consecutivos e, depois, solicitar acesso à produção.
+
+Nenhum app foi criado ou enviado no Play Console, nenhuma publicação na Play Store foi feita e nenhum pagamento foi realizado.
+
+## Fontes oficiais do Google Play
+
+- [Requisitos de nível desejado da API](https://support.google.com/googleplay/android-developer/answer/11926878?hl=pt-BR)
+- [Requisitos de teste para novas contas pessoais](https://support.google.com/googleplay/android-developer/answer/14151465?hl=pt-BR)
+- [Como começar a usar o Play Console](https://support.google.com/googleplay/android-developer/answer/6112435?hl=pt-BR)
+- [Política de privacidade e Data safety](https://support.google.com/googleplay/android-developer/answer/9859455?hl=pt-BR)
